@@ -616,11 +616,19 @@ namespace nvrhi::d3d12
     
     uint64_t Device::executeCommandLists(nvrhi::ICommandList* const* pCommandLists, size_t numCommandLists, CommandQueue executionQueue)
     {
-        std::vector<ID3D12CommandList*> commandListsToExecute(numCommandLists);
+        std::vector<ID3D12CommandList*> commandListsToExecute;
+        commandListsToExecute.reserve(numCommandLists);
         for (size_t i = 0; i < numCommandLists; i++)
         {
-            commandListsToExecute[i] = checked_cast<CommandList*>(pCommandLists[i])->getD3D12CommandList();
+            ID3D12CommandList* d3dList = checked_cast<CommandList*>(pCommandLists[i])->getD3D12CommandList();
+            if (d3dList)
+                commandListsToExecute.push_back(d3dList);
+            else
+                m_Context.messageCallback->message(MessageSeverity::Warning, "executeCommandLists: skipping null/empty command list (was it opened? double-executed?)");
         }
+
+        if (commandListsToExecute.empty())
+            return 0;
 
         Queue* pQueue = getQueue(executionQueue);
 
@@ -629,6 +637,8 @@ namespace nvrhi::d3d12
 
         for (size_t i = 0; i < numCommandLists; i++)
         {
+            ID3D12CommandList* d3dList = checked_cast<CommandList*>(pCommandLists[i])->getD3D12CommandList();
+            if (!d3dList) continue;
             (void)checked_cast<CommandList*>(pCommandLists[i])->executed(pQueue);
         }
 

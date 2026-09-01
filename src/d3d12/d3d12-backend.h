@@ -1008,7 +1008,7 @@ namespace nvrhi::d3d12
         void requireTextureState(ITexture* texture, TextureSubresourceSet subresources, ResourceStates state);
         void requireSamplerFeedbackTextureState(ISamplerFeedbackTexture* texture, ResourceStates state);
         void requireBufferState(IBuffer* buffer, ResourceStates state);
-        ID3D12CommandList* getD3D12CommandList() const { return m_ActiveCommandList->commandList; }
+        ID3D12CommandList* getD3D12CommandList() const { return m_ActiveCommandList ? m_ActiveCommandList->commandList.Get() : nullptr; }
 
         // IResource implementation
 
