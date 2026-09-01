@@ -44,6 +44,11 @@ namespace nvrhi::vulkan
         const PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =   // NOLINT(misc-misplaced-const)
             dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
         VULKAN_HPP_DEFAULT_DISPATCHER.init(desc.instance, vkGetInstanceProcAddr, desc.device);
+#else
+        // Static lib build: Wasteland also calls init in NVRHIContext.cpp, but NVRHI's TU may have a
+        // separate DispatchLoaderDynamic instance when built with a different vulkan_headers path.
+        // Always init here so Queue::Queue's createSemaphore dispatches correctly into nvogl.
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(desc.instance, vkGetInstanceProcAddr, desc.device);
 #endif
 
         Device* device = new Device(desc);
