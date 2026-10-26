@@ -4,7 +4,7 @@
 
 ## Introduction
 
-NVRHI (**NV**IDIA **R**endering **H**ardware **I**nterface) is a library that implements a common abstraction layer over multiple graphics APIs (GAPIs): Direct3D 11, Direct3D 12, and Vulkan 1.3. It works on Windows (x64 only) and Linux (x64 and ARM64).
+NVRHI (**NV**IDIA **R**endering **H**ardware **I**nterface) is a library that implements a common abstraction layer over multiple graphics APIs (GAPIs): Direct3D 11, Direct3D 12, and Vulkan 1.3. It works on Windows and Linux (x64 and ARM64).
 
 Key features:
 
@@ -92,13 +92,15 @@ The default values of these configuration variables should be OK for most use ca
 
 ## Using NVRHI in Applications
 
-See the [programming guide](doc/ProgrammingGuide.md) and the [tutorial](doc/Tutorial.md).
+See the [programming guide](doc/ProgrammingGuide.md), the [tutorial](doc/Tutorial.md), and the [optional memory query reference](doc/memory-queries.md).
 
 ## NVAPI Support
 
 NVRHI includes optional support for certain DX11 and DX12 extensions available through the NVAPI library. The library is not distributed with NVRHI but is available separately [here](https://developer.nvidia.com/nvapi).
 
 To enable NVAPI support, extract the NVAPI SDK into the `nvapi` subfolder of your main project and set the `NVRHI_WITH_NVAPI` CMake variable to `ON`.
+
+Windows on ARM64 needs the R615 or later NVAPI SDK, the first to ship the ARM64 library (`aarch64/nvapia64.lib`). The library matching the target architecture is picked automatically.
 
 The following extensions are supported:
 

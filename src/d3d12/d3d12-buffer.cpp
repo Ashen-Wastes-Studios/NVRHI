@@ -67,7 +67,7 @@ namespace nvrhi::d3d12
             desc.byteSize = align(d.byteSize, 256ull);
         }
 
-        Buffer* buffer = new Buffer(m_Context, m_Resources, desc);
+        Buffer* buffer = new Buffer(m_Context, m_Resources, desc, m_EnhancedBarriersSupported);
         
         if (d.isVolatile)
         {
@@ -214,9 +214,7 @@ namespace nvrhi::d3d12
             std::wstring wname(desc.debugName.begin(), desc.debugName.end());
             resource->SetName(wname.c_str());
 #if NVRHI_WITH_AFTERMATH
-            // the driver will track the resource internally so don't need to keep the handle around
-            GFSDK_Aftermath_ResourceHandle resourceHandle = {};
-            GFSDK_Aftermath_DX12_RegisterResource(resource, &resourceHandle);
+            GFSDK_Aftermath_DX12_UpdateResourceInfo(resource);
 #endif
         }
 
@@ -314,14 +312,30 @@ namespace nvrhi::d3d12
 
     MemoryRequirements Device::getBufferMemoryRequirements(IBuffer* _buffer)
     {
-        Buffer* buffer = checked_cast<Buffer*>(_buffer);
+        return checked_cast<Buffer*>(_buffer)->getMemoryRequirements();
+    }
 
+    bool Buffer::queryMemoryRequirements(MemoryRequirements& outRequirements)
+    {
+        if (desc.isVolatile)
+            return false;
+
+        const MemoryRequirements requirements = getMemoryRequirements();
+        if (requirements.size == 0 || requirements.size == UINT64_MAX)
+            return false;
+
+        outRequirements = requirements;
+        return true;
+    }
+
+    MemoryRequirements Buffer::getMemoryRequirements() const
+    {
         MemoryRequirements memReq{};
 
         if (m_EnhancedBarriersSupported)
         {
             D3D12_RESOURCE_ALLOCATION_INFO1 allocInfo{};
-            m_Context.device8->GetResourceAllocationInfo2(1, 1, &buffer->resourceDesc, &allocInfo);
+            m_Context.device8->GetResourceAllocationInfo2(1, 1, &resourceDesc, &allocInfo);
 
             memReq.alignment = allocInfo.Alignment;
             memReq.size = allocInfo.SizeInBytes;
@@ -329,7 +343,7 @@ namespace nvrhi::d3d12
         else
         {
             D3D12_RESOURCE_ALLOCATION_INFO allocInfo = m_Context.device->GetResourceAllocationInfo(
-                1, 1, reinterpret_cast<D3D12_RESOURCE_DESC*>(&buffer->resourceDesc));
+                1, 1, reinterpret_cast<const D3D12_RESOURCE_DESC*>(&resourceDesc));
             
             memReq.alignment = allocInfo.Alignment;
             memReq.size = allocInfo.SizeInBytes;
@@ -401,8 +415,9 @@ namespace nvrhi::d3d12
 
         ID3D12Resource* pResource = static_cast<ID3D12Resource*>(_buffer.pointer);
 
-        Buffer* buffer = new Buffer(m_Context, m_Resources, desc);
+        Buffer* buffer = new Buffer(m_Context, m_Resources, desc, m_EnhancedBarriersSupported);
         buffer->resource = pResource;
+        *reinterpret_cast<D3D12_RESOURCE_DESC*>(&buffer->resourceDesc) = pResource->GetDesc();
         
         buffer->postCreate();
 
